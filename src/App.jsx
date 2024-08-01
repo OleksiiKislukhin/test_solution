@@ -10,9 +10,10 @@ import productsFromServer from './api/products';
 
 const getFilteredProducts = (
   products,
-  filterByUser = '',
-  filterByQuery = '',
+  filterByUser,
+  filterByQuery,
   selectedCategories,
+  sortByColumn = {},
 ) => {
   let filteredProducts = [...products];
 
@@ -36,6 +37,50 @@ const getFilteredProducts = (
     );
   }
 
+  const sortColumn = Object.entries(sortByColumn);
+
+  if (sortColumn.length !== 0) {
+    let columnName = '';
+
+    switch (sortColumn[0][0]) {
+      case 'ID':
+        columnName = 'id';
+        break;
+
+      case 'Product':
+        columnName = 'name';
+        break;
+
+      case 'Category':
+        columnName = 'category.title';
+        break;
+
+      case 'User':
+        columnName = 'user.name';
+        break;
+
+      default:
+        break;
+    }
+
+    const columnValue = sortColumn[0][1];
+
+    filteredProducts = filteredProducts.sort((prod1, prod2) => {
+      switch (typeof prod1[columnName]) {
+        case 'number':
+          return (prod1[columnName] - prod2[columnName]) * columnValue;
+
+        case 'string':
+          return (
+            prod1[columnName].localeCompare(prod2[columnName]) * columnValue
+          );
+
+        default:
+          return 0;
+      }
+    });
+  }
+
   return filteredProducts;
 };
 
@@ -56,16 +101,20 @@ const getProducts = products => {
   });
 };
 
+const COLUMNS = ['ID', 'Product', 'Category', 'User'];
+
 export const App = () => {
   const [filterByUser, setFilterByUser] = useState('');
   const [filterByQuery, setFilterByQuery] = useState('');
   const [selectedCategories, setSelectedCategories] = useState(new Set());
+  const [sortByColumn, setSortByColumn] = useState({});
   const products = getProducts(productsFromServer);
   const filteredProducts = getFilteredProducts(
     products,
     filterByUser,
     filterByQuery,
     selectedCategories,
+    sortByColumn,
   );
 
   const resetFilters = () => {
@@ -81,6 +130,22 @@ export const App = () => {
       : selectedCategories.add(category);
 
     setSelectedCategories(new Set(selectedCategories));
+  };
+
+  const changeSelectedColumn = column => {
+    if (!Object.hasOwn(sortByColumn, column)) {
+      setSortByColumn({ [column]: 1 });
+
+      return;
+    }
+
+    if (sortByColumn[column] === 1) {
+      setSortByColumn({ [column]: -1 });
+
+      return;
+    }
+
+    setSortByColumn({});
   };
 
   return (
@@ -197,49 +262,35 @@ export const App = () => {
             >
               <thead>
                 <tr>
-                  <th>
-                    <span className="is-flex is-flex-wrap-nowrap">
-                      ID
-                      <a href="#/">
-                        <span className="icon">
-                          <i data-cy="SortIcon" className="fas fa-sort" />
-                        </span>
-                      </a>
-                    </span>
-                  </th>
+                  {COLUMNS.map(column => {
+                    const isSortedColumn = Object.hasOwn(sortByColumn, column);
+                    const columnIcon = isSortedColumn
+                      ? sortByColumn[column]
+                      : 0;
 
-                  <th>
-                    <span className="is-flex is-flex-wrap-nowrap">
-                      Product
-                      <a href="#/">
-                        <span className="icon">
-                          <i data-cy="SortIcon" className="fas fa-sort-down" />
+                    return (
+                      <th>
+                        <span className="is-flex is-flex-wrap-nowrap">
+                          {column}
+                          <a
+                            href="#/"
+                            onClick={() => changeSelectedColumn(column)}
+                          >
+                            <span className="icon">
+                              <i
+                                data-cy="SortIcon"
+                                className={cn('fas', {
+                                  'fa-sort': !isSortedColumn,
+                                  'fa-sort-up': columnIcon === 1,
+                                  'fa-sort-down': columnIcon === -1,
+                                })}
+                              />
+                            </span>
+                          </a>
                         </span>
-                      </a>
-                    </span>
-                  </th>
-
-                  <th>
-                    <span className="is-flex is-flex-wrap-nowrap">
-                      Category
-                      <a href="#/">
-                        <span className="icon">
-                          <i data-cy="SortIcon" className="fas fa-sort-up" />
-                        </span>
-                      </a>
-                    </span>
-                  </th>
-
-                  <th>
-                    <span className="is-flex is-flex-wrap-nowrap">
-                      User
-                      <a href="#/">
-                        <span className="icon">
-                          <i data-cy="SortIcon" className="fas fa-sort" />
-                        </span>
-                      </a>
-                    </span>
-                  </th>
+                      </th>
+                    );
+                  })}
                 </tr>
               </thead>
 
