@@ -8,13 +8,25 @@ import usersFromServer from './api/users';
 import categoriesFromServer from './api/categories';
 import productsFromServer from './api/products';
 
-const getFilteredProducts = (products, byUser = '') => {
+const getFilteredProducts = (
+  products,
+  filterByUser = '',
+  filterByQuery = '',
+) => {
   let filteredProducts = [...products];
 
-  if (byUser) {
+  if (filterByUser) {
     filteredProducts = filteredProducts.filter(
-      ({ user }) => user.name === byUser,
+      ({ user }) => user.name === filterByUser,
     );
+  }
+
+  if (filterByQuery) {
+    filteredProducts = filteredProducts.filter(({ name }) => {
+      const fixedQuery = filterByQuery.toLowerCase().trim();
+
+      return name.toLowerCase().includes(fixedQuery);
+    });
   }
 
   return filteredProducts;
@@ -39,8 +51,13 @@ const getProducts = products => {
 
 export const App = () => {
   const [filterByUser, setFilterByUser] = useState('');
+  const [filterByQuery, setFilterByQuery] = useState('');
   const products = getProducts(productsFromServer);
-  const filteredProducts = getFilteredProducts(products, filterByUser);
+  const filteredProducts = getFilteredProducts(
+    products,
+    filterByUser,
+    filterByQuery,
+  );
 
   return (
     <div className="section">
@@ -84,21 +101,24 @@ export const App = () => {
                   type="text"
                   className="input"
                   placeholder="Search"
-                  value="qwe"
+                  value={filterByQuery}
+                  onChange={event => setFilterByQuery(event.target.value)}
                 />
 
                 <span className="icon is-left">
                   <i className="fas fa-search" aria-hidden="true" />
                 </span>
 
-                <span className="icon is-right">
-                  {/* eslint-disable-next-line jsx-a11y/control-has-associated-label */}
-                  <button
-                    data-cy="ClearButton"
-                    type="button"
-                    className="delete"
-                  />
-                </span>
+                {filterByQuery && (
+                  <span className="icon is-right">
+                    <button
+                      data-cy="ClearButton"
+                      type="button"
+                      className="delete"
+                      onClick={() => setFilterByQuery('')}
+                    />
+                  </span>
+                )}
               </p>
             </div>
 
