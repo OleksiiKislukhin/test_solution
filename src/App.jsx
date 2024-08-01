@@ -12,6 +12,7 @@ const getFilteredProducts = (
   products,
   filterByUser = '',
   filterByQuery = '',
+  selectedCategories,
 ) => {
   let filteredProducts = [...products];
 
@@ -29,6 +30,12 @@ const getFilteredProducts = (
     });
   }
 
+  if (selectedCategories.size) {
+    filteredProducts = filteredProducts.filter(({ category }) =>
+      selectedCategories.has(category.title),
+    );
+  }
+
   return filteredProducts;
 };
 
@@ -44,7 +51,7 @@ const getProducts = products => {
     return {
       ...product,
       user: productUser,
-      categories: productCategories,
+      category: productCategories,
     };
   });
 };
@@ -52,16 +59,28 @@ const getProducts = products => {
 export const App = () => {
   const [filterByUser, setFilterByUser] = useState('');
   const [filterByQuery, setFilterByQuery] = useState('');
+  const [selectedCategories, setSelectedCategories] = useState(new Set());
   const products = getProducts(productsFromServer);
   const filteredProducts = getFilteredProducts(
     products,
     filterByUser,
     filterByQuery,
+    selectedCategories,
   );
 
   const resetFilters = () => {
     setFilterByUser('');
     setFilterByQuery('');
+    setSelectedCategories(new Set());
+  };
+
+  const changeSelectedCategories = category => {
+    // eslint-disable-next-line no-unused-expressions
+    selectedCategories.has(category)
+      ? selectedCategories.delete(category)
+      : selectedCategories.add(category);
+
+    setSelectedCategories(new Set(selectedCategories));
   };
 
   return (
@@ -131,33 +150,26 @@ export const App = () => {
               <a
                 href="#/"
                 data-cy="AllCategories"
-                className="button is-success mr-6 is-outlined"
+                className={cn('button is-success mr-6', {
+                  'is-outlined': selectedCategories.size,
+                })}
+                onClick={() => setSelectedCategories(new Set())}
               >
                 All
               </a>
 
-              <a
-                data-cy="Category"
-                className="button mr-2 my-1 is-info"
-                href="#/"
-              >
-                Category 1
-              </a>
-
-              <a data-cy="Category" className="button mr-2 my-1" href="#/">
-                Category 2
-              </a>
-
-              <a
-                data-cy="Category"
-                className="button mr-2 my-1 is-info"
-                href="#/"
-              >
-                Category 3
-              </a>
-              <a data-cy="Category" className="button mr-2 my-1" href="#/">
-                Category 4
-              </a>
+              {categoriesFromServer.map(({ title }) => (
+                <a
+                  data-cy="Category"
+                  className={cn('button mr-2 my-1', {
+                    'is-info': selectedCategories.has(title),
+                  })}
+                  href="#/"
+                  onClick={() => changeSelectedCategories(title)}
+                >
+                  {title}
+                </a>
+              ))}
             </div>
 
             <div className="panel-block">
@@ -233,9 +245,9 @@ export const App = () => {
 
               <tbody>
                 {filteredProducts.map(product => {
-                  const { id, name: productName, user, categories } = product;
+                  const { id, name: productName, user, category } = product;
                   const { name: userName, sex } = user;
-                  const categoriesName = `${categories.icon} - ${categories.title}`;
+                  const categoryName = `${category.icon} - ${category.title}`;
 
                   return (
                     <tr data-cy="Product" key="id">
@@ -244,7 +256,7 @@ export const App = () => {
                       </td>
 
                       <td data-cy="ProductName">{productName}</td>
-                      <td data-cy="ProductCategory">{categoriesName}</td>
+                      <td data-cy="ProductCategory">{categoryName}</td>
 
                       <td
                         data-cy="ProductUser"
