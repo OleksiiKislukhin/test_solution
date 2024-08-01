@@ -65,15 +65,20 @@ const getFilteredProducts = (
 
     const columnValue = sortColumn[0][1];
 
+    const getNestedValue = (obj, path) => {
+      return path.split('.').reduce((acc, part) => acc && acc[part], obj);
+    };
+
     filteredProducts = filteredProducts.sort((prod1, prod2) => {
-      switch (typeof prod1[columnName]) {
+      const value1 = getNestedValue(prod1, columnName);
+      const value2 = getNestedValue(prod2, columnName);
+
+      switch (typeof value1) {
         case 'number':
-          return (prod1[columnName] - prod2[columnName]) * columnValue;
+          return (value1 - value2) * columnValue;
 
         case 'string':
-          return (
-            prod1[columnName].localeCompare(prod2[columnName]) * columnValue
-          );
+          return value1.localeCompare(value2) * columnValue;
 
         default:
           return 0;
@@ -121,6 +126,7 @@ export const App = () => {
     setFilterByUser('');
     setFilterByQuery('');
     setSelectedCategories(new Set());
+    setSortByColumn({});
   };
 
   const changeSelectedCategories = category => {
